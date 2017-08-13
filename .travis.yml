@@ -1,4 +1,17 @@
+sudo: true
 language: elixir
 
 elixir:
   - 1.5
+
+cache:
+  directories:
+    - $HOME/libsodium
+
+before_install:
+  - sudo ./.travis-libsodium.sh
+
+script:
+  - mix deps.compile
+  - MIX_ENV=test mix deps.compile
+  - mix test
