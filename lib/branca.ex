@@ -44,6 +44,24 @@ defmodule Branca do
     Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
   end
 
+  def decode(encoded, ttl) do
+    token = encoded
+      |> base62_decode
+      |> explode_binary
+      |> explode_header
+      |> explode_data
+
+    payload = Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
+
+    future = token.timestamp + ttl
+    unixtime = DateTime.utc_now() |> DateTime.to_unix()
+
+    cond do
+      future < unixtime -> {:error, :expired}
+      true -> {:ok, payload}
+    end
+  end
+
   defp generate_header(token) do
     header = <<@version>> <> token.timestamp <> token.nonce
     %Token{token | header: header}
