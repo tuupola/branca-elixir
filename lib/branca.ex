@@ -30,7 +30,13 @@ defmodule Branca do
   end
 
   def decode(token) do
-    "Hello world!"
+    binary = @base62.decode(token)
+    << header::binary - size(29), data::binary >> = binary
+    << _version::8, _timestamp::32, nonce::binary - size(24) >> = header
+    ciphertext_size = byte_size(data) - 16
+    << ciphertext::binary - size(ciphertext_size), tag::binary - size(16) >> = data
+
+    {_status, _payload} = Xchacha20.decrypt_detached(nil, ciphertext, tag, header, nonce, @key)
   end
 
   defp generate_header(nonce) do

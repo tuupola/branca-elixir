@@ -8,16 +8,16 @@ defmodule BrancaTest do
 
   test "Should pass test vector 1" do
     assert Branca.encode(@payload, 123206400, @nonce) == @token
-    assert Branca.decode(@token) == @payload
+    assert Branca.decode(@token) == {:ok, @payload}
   end
 
   test "Should encode payload" do
     token = Branca.encode(@payload)
-    assert Branca.decode(token) == @payload
+    assert Branca.decode(token) == {:ok, @payload}
   end
 
   test "Should encode payload and timestamp" do
     token = Branca.encode(@payload, 123206400)
-    assert Branca.decode(token) == @payload
+    assert Branca.decode(token) == {:ok, @payload}
   end
 end
