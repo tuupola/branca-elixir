@@ -1,6 +1,8 @@
 defmodule Branca do
   @moduledoc """
-  Documentation for Branca.
+  Branca allows you to generate and verify encrypted API tokens. [Branca specification](https://github.com/tuupola/branca-spec) defines the external format and encryption scheme of the   token to help interoperability between userland implementations. Branca is closely based on [Fernet](https://github.com/fernet/spec/blob/master/Spec.md).
+
+  Payload in Branca token is an arbitrary sequence of bytes. This means payload can   be for example a JSON object, plain text string or even binary data serialized by [MessagePack](http://msgpack.org/) or [Protocol Buffers](https://developers.google.com/protocol-buffers/).
   """
   alias Salty.Aead.Xchacha20poly1305Ietf, as: Xchacha20
   alias Branca.Token, as: Token
@@ -10,11 +12,25 @@ defmodule Branca do
   @base62 BaseX.prepare_module("Base62", @alphabet, 127)
   @key Application.get_env(:branca, :key)
 
+  @doc """
+  Returns base62 encoded encrypted token with given payload.
+
+  Token will use current timestamp and generated random nonce. This is what you almost always want to use.
+
+      iex> token = Branca.encode("Hello world!")
+  """
   def encode(payload) do
     timestamp = DateTime.utc_now() |> DateTime.to_unix()
     encode(payload, timestamp)
   end
 
+  @doc """
+  Returns base62 encoded encrypted token with given payload and timestamp
+
+  Token will use generated random nonce. You can for example opt-out from timestamp by setting it to `0`. You can also adjust for clock skew by setting the timestamp few seconds to future.
+
+      iex> token = Branca.encode("Hello world!", 123206400)
+  """
   def encode(payload, timestamp) do
     timestamp = timestamp |> :binary.encode_unsigned(:big)
     token = %Token{payload: payload, timestamp: timestamp}
@@ -25,6 +41,14 @@ defmodule Branca do
       @base62.encode(token.header <> token.ciphertext)
   end
 
+  @doc """
+  Returns base62 encoded encrypted token with given payload, timestamp and nonce.
+
+  This is mostly used for unit testing. If you use this function make sure not to reuse the nonce between tokens.
+
+      iex> nonce = Salty.Random.buf(24)
+      iex> token = Branca.encode("Hello world!", 123206400, nonce)
+  """
   def encode(payload, timestamp, nonce) do
     timestamp = timestamp |> :binary.encode_unsigned(:big)
     token = %Token{payload: payload, timestamp: timestamp, nonce: nonce}
@@ -62,14 +86,19 @@ defmodule Branca do
     end
   end
 
-  defp generate_header(token) do
-    header = <<@version>> <> token.timestamp <> token.nonce
-    %Token{token | header: header}
+  defp generate_timestamp(token) do
+    timestamp =  DateTime.utc_now() |> DateTime.to_unix()
+    %Token{token | timestamp: timestamp}
   end
 
   defp generate_nonce(token) do
     {_status, nonce} = Salty.Random.buf(Xchacha20.npubbytes())
     %Token{token | nonce: nonce}
+  end
+
+  defp generate_header(token) do
+    header = <<@version>> <> token.timestamp <> token.nonce
+    %Token{token | header: header}
   end
 
   defp base62_decode(encoded) do
