@@ -18,6 +18,7 @@ defmodule Branca do
   Token will use current timestamp and generated random nonce. This is what you almost always want to use.
 
       iex> token = Branca.encode("Hello world!")
+      875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a
   """
   def encode(payload) do
     timestamp = DateTime.utc_now() |> DateTime.to_unix()
@@ -30,6 +31,7 @@ defmodule Branca do
   Token will use generated random nonce. You can for example opt-out from timestamp by setting it to `0`. You can also adjust for clock skew by setting the timestamp few seconds to future.
 
       iex> token = Branca.encode("Hello world!", 123206400)
+      87x85fHpKCLTmXrRJUcPiOiNTBTpG5MpvUg87fbcaqv2uK68iFK3ocTIVIdlrvXTkhA6jvCf3HiW1
   """
   def encode(payload, timestamp) do
     timestamp = timestamp |> :binary.encode_unsigned(:big)
@@ -48,6 +50,7 @@ defmodule Branca do
 
       iex> nonce = Salty.Random.buf(24)
       iex> token = Branca.encode("Hello world!", 123206400, nonce)
+      87x85fNayA1e3Zd0mv0nJao0QE3oNUGTuj9gVdEcrX4RKMQ7a9VGziHec52jgMWYobXwsc4mrRM0A
   """
   def encode(payload, timestamp, nonce) do
     timestamp = timestamp |> :binary.encode_unsigned(:big)
@@ -58,6 +61,13 @@ defmodule Branca do
       @base62.encode(token.header <> token.ciphertext)
   end
 
+  @doc """
+  Decrypts and verifies the token and returns the payload.
+
+      iex> token = Branca.encode("Hello world!");
+      iex> Branca.decode(token)
+      {:ok, "Hello world!"}
+  """
   def decode(encoded) do
     token = encoded
       |> base62_decode
@@ -68,6 +78,15 @@ defmodule Branca do
     Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
   end
 
+  @doc """
+  Decrypts, verifies and checks the timestamp of the token and returns the payload.
+
+      iex> token = Branca.encode("Hello world!", 123206400);
+      iex> Branca.decode(token)
+      {:ok, "Hello world!"}
+      iex> Branca.decode(token, 60)
+      {:error, :expired}
+  """
   def decode(encoded, ttl) do
     token = encoded
       |> base62_decode
