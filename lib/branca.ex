@@ -115,11 +115,6 @@ defmodule Branca do
     end
   end
 
-  defp generate_timestamp(token) do
-    timestamp =  DateTime.utc_now() |> DateTime.to_unix()
-    %Token{token | timestamp: timestamp}
-  end
-
   defp generate_nonce(token) do
     {_status, nonce} = Salty.Random.buf(Xchacha20.npubbytes())
     %Token{token | nonce: nonce}
