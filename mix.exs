@@ -4,7 +4,7 @@ defmodule Branca.Mixfile do
   def project do
     [
       app: :branca,
-      version: "0.0.1",
+      version: "0.1.0",
       elixir: "~> 1.5",
       start_permanent: Mix.env == :prod,
       description: description(),
@@ -42,7 +42,7 @@ defmodule Branca.Mixfile do
       licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/tuupola/branca-elixir",
-        "Spec" => "https://github.com/tuupola/branca-spec"
+        "Specification" => "https://github.com/tuupola/branca-spec"
       }
     ]
   end
