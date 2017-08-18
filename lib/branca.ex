@@ -1,8 +1,14 @@
 defmodule Branca do
   @moduledoc """
-  Branca allows you to generate and verify encrypted API tokens. [Branca specification](https://github.com/tuupola/branca-spec) defines the external format and encryption scheme of the   token to help interoperability between userland implementations. Branca is closely based on [Fernet](https://github.com/fernet/spec/blob/master/Spec.md).
+  Branca allows you to generate and verify encrypted API tokens (IETF
+  XChaCha20-Poly1305 AEAD). [Branca specification](https://github.com/tuupola/branca-spec)
+  defines the external format and encryption scheme of the token to help
+  interoperability between userland implementations. Branca is closely based
+  on [Fernet](https://github.com/fernet/spec/blob/master/Spec.md).
 
-  Payload in Branca token is an arbitrary sequence of bytes. This means payload can   be for example a JSON object, plain text string or even binary data serialized by [MessagePack](http://msgpack.org/) or [Protocol Buffers](https://developers.google.com/protocol-buffers/).
+  Payload in Branca token is an arbitrary sequence of bytes. This means
+  payload can be for example a JSON object, plain text string or even binary
+  data serialized by [MessagePack](http://msgpack.org/) or [Protocol Buffers](https://developers.google.com/protocol-buffers/).
   """
   alias Salty.Aead.Xchacha20poly1305Ietf, as: Xchacha20
   alias Branca.Token, as: Token
@@ -15,7 +21,8 @@ defmodule Branca do
   @doc """
   Returns base62 encoded encrypted token with given payload.
 
-  Token will use current timestamp and generated random nonce. This is what you almost always want to use.
+  Token will use current timestamp and generated random nonce. This is what
+  you almost always want to use.
 
       iex> token = Branca.encode("Hello world!")
       875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a
@@ -28,7 +35,9 @@ defmodule Branca do
   @doc """
   Returns base62 encoded encrypted token with given payload and timestamp
 
-  Token will use generated random nonce. You can for example opt-out from timestamp by setting it to `0`. You can also adjust for clock skew by setting the timestamp few seconds to future.
+  Token will use generated random nonce. You can for example opt-out from
+  timestamp by setting it to `0`. You can also adjust for clock skew by
+  setting the timestamp few seconds to future.
 
       iex> token = Branca.encode("Hello world!", 123206400)
       87x85fHpKCLTmXrRJUcPiOiNTBTpG5MpvUg87fbcaqv2uK68iFK3ocTIVIdlrvXTkhA6jvCf3HiW1
@@ -46,7 +55,8 @@ defmodule Branca do
   @doc """
   Returns base62 encoded encrypted token with given payload, timestamp and nonce.
 
-  This is mostly used for unit testing. If you use this function make sure not to reuse the nonce between tokens.
+  This is mostly used for unit testing. If you use this function make sure not
+  to reuse the nonce between tokens.
 
       iex> nonce = Salty.Random.buf(24)
       iex> token = Branca.encode("Hello world!", 123206400, nonce)
