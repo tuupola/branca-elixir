@@ -29,6 +29,11 @@ defmodule BrancaTest do
     assert Branca.decode(@token, %{:ttl => 3600}) == {:error, :expired}
   end
 
+  test "Should encode with ttl" do
+    token = Branca.encode(@payload)
+    assert Branca.decode(token, %{:ttl => 3600}) == {:ok, "Hello world!"}
+  end
+
   test "Should fail with forged token" do
     assert Branca.decode(@forged, nonce: @nonce) == {:error, :forged}
   end

@@ -80,7 +80,7 @@ defmodule Branca do
 
   def decode(token, %{:ttl => ttl}) when is_integer(ttl) do
     token = explode_token(token)
-    payload = unseal(token)
+    {_, payload} = unseal(token)
 
     future = token.timestamp + ttl
     unixtime = DateTime.utc_now() |> DateTime.to_unix()
