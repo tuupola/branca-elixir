@@ -80,7 +80,7 @@ defmodule Branca do
 
   def decode(token, %{:ttl => ttl}) when is_integer(ttl) do
     token = explode_token(token)
-    payload = Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
+    payload = unseal(token)
 
     future = token.timestamp + ttl
     unixtime = DateTime.utc_now() |> DateTime.to_unix()
@@ -93,7 +93,11 @@ defmodule Branca do
 
   def decode(token, %{}) do
     token = explode_token(token)
-    Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
+
+    cond do
+      @version == token.version -> unseal(token)
+      true -> {:error, :wrong_version}
+    end
   end
 
   defp add_timestamp(token, %{timestamp: timestamp}) when is_integer(timestamp) do
@@ -163,6 +167,10 @@ defmodule Branca do
   defp seal(token) do
     {_, ciphertext} = Xchacha20.encrypt(token.payload, token.header, nil, token.nonce, @key)
     %Token{token | ciphertext: ciphertext}
+  end
+
+  defp unseal(token) do
+    Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
   end
 end
 
