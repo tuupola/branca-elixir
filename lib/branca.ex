@@ -13,6 +13,8 @@ defmodule Branca do
   alias Salty.Aead.Xchacha20poly1305Ietf, as: Xchacha20
   alias Branca.Token, as: Token
 
+  import DateTime, only: [utc_now: 0, to_unix: 1]
+
   @version 0xBA
   @alphabet "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
   @base62 BaseX.prepare_module("Base62", @alphabet, 127)
@@ -83,10 +85,9 @@ defmodule Branca do
     {_, payload} = unseal(token)
 
     future = token.timestamp + ttl
-    unixtime = DateTime.utc_now() |> DateTime.to_unix()
 
     cond do
-      future < unixtime -> {:error, :expired}
+      future < unixtime() -> {:error, :expired}
       true -> {:ok, payload}
     end
   end
@@ -107,8 +108,8 @@ defmodule Branca do
 
   defp add_timestamp(token, %{}) do
     timestamp =
-      DateTime.utc_now()
-      |> DateTime.to_unix()
+      utc_now()
+      |> to_unix()
       |> :binary.encode_unsigned(:big)
 
     %Token{token | timestamp: timestamp}
@@ -137,20 +138,17 @@ defmodule Branca do
     @base62.encode(token.header <> token.ciphertext)
   end
 
-  defp explode_binary(token) do
-    %Token{binary: binary} = token
+  defp explode_binary(%Token{binary: binary} = token) do
     << header::binary - size(29), data::binary >> = binary
     %Token{token | header: header, data: data}
   end
 
-  defp explode_header(token) do
-    %Token{header: header} = token
+  defp explode_header(%Token{header: header} = token) do
     << version::8, timestamp::32, nonce::binary - size(24) >> = header
     %Token{token | version: version, timestamp: timestamp, nonce: nonce}
   end
 
-  defp explode_data(token) do
-    %Token{data: data} = token
+  defp explode_data(%Token{data: data} = token) do
     size = byte_size(data) - 16
     << ciphertext::binary - size(size), tag::binary - size(16) >> = data
     %Token{token | ciphertext: ciphertext, tag: tag}
@@ -164,6 +162,10 @@ defmodule Branca do
       |> explode_data
   end
 
+  defp unixtime do
+    to_unix(utc_now())
+  end
+
   defp seal(token) do
     {_, ciphertext} = Xchacha20.encrypt(token.payload, token.header, nil, token.nonce, @key)
     %Token{token | ciphertext: ciphertext}
@@ -173,4 +175,3 @@ defmodule Branca do
     Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
   end
 end
-
