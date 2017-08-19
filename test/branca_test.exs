@@ -1,6 +1,6 @@
 defmodule BrancaTest do
   use ExUnit.Case
-  doctest Branca, except: [:moduledoc, encode: 1, encode: 2, encode: 3]
+  #doctest Branca, except: [:moduledoc, encode: 1, encode: 2, encode: 3]
 
   @token "875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a"
   @nonce String.duplicate(<<0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c>>, 2)
@@ -12,17 +12,17 @@ defmodule BrancaTest do
   end
 
   test "Should encode payload and timestamp" do
-    token = Branca.encode(@payload, 123206400)
+    token = Branca.encode(@payload, timestamp: 123206400)
     assert Branca.decode(token) == {:ok, @payload}
   end
 
   test "Should encode and decode payload, timestamp and nonce" do
-    assert Branca.encode(@payload, 123206400, @nonce) == @token
+    assert Branca.encode(@payload, timestamp: 123206400, nonce: @nonce) == @token
     assert Branca.decode(@token) == {:ok, @payload}
   end
 
   test "Should fail with expired" do
-    assert Branca.encode(@payload, 123206400, @nonce) == @token
-    assert Branca.decode(@token, 3600) == {:error, :expired}
+    assert Branca.encode(@payload, timestamp: 123206400, nonce: @nonce) == @token
+    assert Branca.decode(@token, %{:ttl => 3600}) == {:error, :expired}
   end
 end

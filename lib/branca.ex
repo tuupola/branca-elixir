@@ -21,89 +21,65 @@ defmodule Branca do
   @doc """
   Returns base62 encoded encrypted token with given payload.
 
-  Token will use current timestamp and generated random nonce. This is what
-  you almost always want to use.
+  by default Token will use current timestamp and generated random nonce. This
+  is what you almost always want to use.
 
       iex> token = Branca.encode("Hello world!")
       875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a
-  """
-  def encode(payload) do
-    timestamp = DateTime.utc_now() |> DateTime.to_unix()
-    encode(payload, timestamp)
-  end
 
-  @doc """
-  Returns base62 encoded encrypted token with given payload and timestamp
+  Optionally you can pass `timestamp` and `nonce`. You could for example opt-out
+  from sending `timestamp` by setting it to `0`. Clock skew can be adjusted by setting
+  the timestamp few seconds to future.
 
-  Token will use generated random nonce. You can for example opt-out from
-  timestamp by setting it to `0`. You can also adjust for clock skew by
-  setting the timestamp few seconds to future.
+      iex> token = Branca.encode("Hello world!", timestamp: 123206400)
+      875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a
 
-      iex> token = Branca.encode("Hello world!", 123206400)
-      87x85fHpKCLTmXrRJUcPiOiNTBTpG5MpvUg87fbcaqv2uK68iFK3ocTIVIdlrvXTkhA6jvCf3HiW1
-  """
-  def encode(payload, timestamp) do
-    timestamp = timestamp |> :binary.encode_unsigned(:big)
-    token = %Token{payload: payload, timestamp: timestamp}
-      |> generate_nonce
-      |> generate_header
-      |> seal
-
-      @base62.encode(token.header <> token.ciphertext)
-  end
-
-  @doc """
-  Returns base62 encoded encrypted token with given payload, timestamp and nonce.
-
-  This is mostly used for unit testing. If you use this function make sure not
-  to reuse the nonce between tokens.
+  Manual `nonce` is mostly used for unit testing. If you generate `nonce` yourself
+  make sure not to reuse the it between tokens.
 
       iex> nonce = Salty.Random.buf(24)
-      iex> token = Branca.encode("Hello world!", 123206400, nonce)
+      iex> token = Branca.encode("Hello world!", timestamp: 123206400, nonce: nonce)
       87x85fNayA1e3Zd0mv0nJao0QE3oNUGTuj9gVdEcrX4RKMQ7a9VGziHec52jgMWYobXwsc4mrRM0A
   """
-  def encode(payload, timestamp, nonce) do
-    timestamp = timestamp |> :binary.encode_unsigned(:big)
-    token = %Token{payload: payload, timestamp: timestamp, nonce: nonce}
-      |> generate_header
-      |> seal
+  def encode(payload, options \\ [])
 
-      @base62.encode(token.header <> token.ciphertext)
+  def encode(payload, options) when is_list(options) do
+    encode(payload, Map.new(options))
+  end
+
+  def encode(payload, options) do
+    %Token{payload: payload}
+      |> add_timestamp(options)
+      |> add_nonce(options)
+      |> add_header
+      |> seal
+      |> base62_encode
   end
 
   @doc """
-  Decrypts and verifies the token and returns the payload.
+  Decrypts and verifies the token and returns the original payload on success.
 
       iex> token = Branca.encode("Hello world!");
       iex> Branca.decode(token)
       {:ok, "Hello world!"}
-  """
-  def decode(encoded) do
-    token = encoded
-      |> base62_decode
-      |> explode_binary
-      |> explode_header
-      |> explode_data
 
-    Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
-  end
+  Optionally you can make sure tokens are valid only `ttl` seconds after
+  they have been generated or timestamped.
 
-  @doc """
-  Decrypts, verifies and checks the timestamp of the token and returns the payload.
-
-      iex> token = Branca.encode("Hello world!", 123206400);
+      iex> token = Branca.encode("Hello world!", timestamp: 123206400);
       iex> Branca.decode(token)
       {:ok, "Hello world!"}
-      iex> Branca.decode(token, 60)
+      iex> Branca.decode(token, ttl: 60)
       {:error, :expired}
   """
-  def decode(encoded, ttl) do
-    token = encoded
-      |> base62_decode
-      |> explode_binary
-      |> explode_header
-      |> explode_data
+  def decode(token, options \\ [])
 
+  def decode(token, options) when is_list(options) do
+    decode(token, Map.new(options))
+  end
+
+  def decode(token, %{:ttl => ttl}) when is_integer(ttl) do
+    token = explode_token(token)
     payload = Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
 
     future = token.timestamp + ttl
@@ -115,12 +91,35 @@ defmodule Branca do
     end
   end
 
-  defp generate_nonce(token) do
-    {_status, nonce} = Salty.Random.buf(Xchacha20.npubbytes())
+  def decode(token, %{}) do
+    token = explode_token(token)
+    Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
+  end
+
+  defp add_timestamp(token, %{timestamp: timestamp}) when is_integer(timestamp) do
+    timestamp = :binary.encode_unsigned(timestamp, :big)
+    %Token{token | timestamp: timestamp}
+  end
+
+  defp add_timestamp(token, %{}) do
+    timestamp =
+      DateTime.utc_now()
+      |> DateTime.to_unix()
+      |> :binary.encode_unsigned(:big)
+
+    %Token{token | timestamp: timestamp}
+  end
+
+  defp add_nonce(token, %{nonce: nonce}) when is_binary(nonce) do
     %Token{token | nonce: nonce}
   end
 
-  defp generate_header(token) do
+  defp add_nonce(token, %{}) do
+    {_, nonce} = Salty.Random.buf(Xchacha20.npubbytes())
+    %Token{token | nonce: nonce}
+  end
+
+  defp add_header(token) do
     header = <<@version>> <> token.timestamp <> token.nonce
     %Token{token | header: header}
   end
@@ -128,6 +127,10 @@ defmodule Branca do
   defp base62_decode(encoded) do
     binary = @base62.decode(encoded)
     %Token{binary: binary}
+  end
+
+  defp base62_encode(token) do
+    @base62.encode(token.header <> token.ciphertext)
   end
 
   defp explode_binary(token) do
@@ -149,8 +152,16 @@ defmodule Branca do
     %Token{token | ciphertext: ciphertext, tag: tag}
   end
 
+  defp explode_token(encoded) do
+    encoded
+      |> base62_decode
+      |> explode_binary
+      |> explode_header
+      |> explode_data
+  end
+
   defp seal(token) do
-    {_status, ciphertext} = Xchacha20.encrypt(token.payload, token.header, nil, token.nonce, @key)
+    {_, ciphertext} = Xchacha20.encrypt(token.payload, token.header, nil, token.nonce, @key)
     %Token{token | ciphertext: ciphertext}
   end
 end
