@@ -50,12 +50,25 @@ defmodule Branca do
   end
 
   def encode(payload, options) do
-    %Token{payload: payload}
-      |> add_timestamp(options)
-      |> add_nonce(options)
-      |> add_header
-      |> seal
-      |> base62_encode
+    try do
+      %Token{payload: payload}
+        |> add_timestamp(options)
+        |> add_nonce(options)
+        |> add_header
+        |> seal
+        |> base62_encode
+    rescue
+      _ in ArgumentError -> {:error, :invalid_argument}
+    else
+      token -> {:ok, token}
+    end
+  end
+
+  def encode!(payload, options \\ []) do
+    case encode(payload, options) do
+      {:ok, token} -> token
+      {:error, reason} -> raise format_error(reason)
+    end
   end
 
   @doc """
@@ -97,9 +110,21 @@ defmodule Branca do
 
     cond do
       @version == token.version -> unseal(token)
-      true -> {:error, :wrong_version}
+      true -> {:error, :unknown_version}
     end
   end
+
+  def decode!(token, options \\ []) do
+    case decode(token, options) do
+      {:ok, payload} -> payload
+      {:error, reason} -> raise format_error(reason)
+    end
+  end
+
+  def format_error(:expired), do: "Token is expired."
+  def format_error(:forged), do: "Invalid token."
+  def format_error(:unknown_version), do: "Unknown token version."
+  def format_error(:invalid_argument), do: "Invalid arguments passed to Libsodium."
 
   defp add_timestamp(token, %{timestamp: timestamp}) when is_integer(timestamp) do
     timestamp = :binary.encode_unsigned(timestamp, :big)
@@ -116,6 +141,10 @@ defmodule Branca do
   end
 
   defp add_nonce(token, %{nonce: nonce}) when is_binary(nonce) do
+    cond do
+      byte_size(nonce) == Xchacha20.npubbytes() -> %Token{token | nonce: nonce}
+      true -> {:error, :invalid_nonce}
+    end
     %Token{token | nonce: nonce}
   end
 
