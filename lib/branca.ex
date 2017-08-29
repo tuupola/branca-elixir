@@ -23,25 +23,25 @@ defmodule Branca do
   @doc """
   Returns base62 encoded encrypted token with given payload.
 
-  by default Token will use current timestamp and generated random nonce. This
+  By default token will use current timestamp and generated random nonce. This
   is what you almost always want to use.
 
       iex> token = Branca.encode("Hello world!")
-      875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a
+      {:ok, "875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a"}
 
   Optionally you can pass `timestamp` and `nonce`. You could for example opt-out
   from sending `timestamp` by setting it to `0`. Clock skew can be adjusted by setting
   the timestamp few seconds to future.
 
       iex> token = Branca.encode("Hello world!", timestamp: 123206400)
-      875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a
+      {:ok, "875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a"}
 
-  Manual `nonce` is mostly used for unit testing. If you generate `nonce` yourself
+  Explicit `nonce` is mostly used for unit testing. If you generate `nonce` yourself
   make sure not to reuse the it between tokens.
 
       iex> nonce = Salty.Random.buf(24)
       iex> token = Branca.encode("Hello world!", timestamp: 123206400, nonce: nonce)
-      87x85fNayA1e3Zd0mv0nJao0QE3oNUGTuj9gVdEcrX4RKMQ7a9VGziHec52jgMWYobXwsc4mrRM0A
+      {:ok, "87x85fNayA1e3Zd0mv0nJao0QE3oNUGTuj9gVdEcrX4RKMQ7a9VGziHec52jgMWYobXwsc4mrRM0A"}
   """
   def encode(payload, options \\ [])
 
@@ -64,6 +64,12 @@ defmodule Branca do
     end
   end
 
+  @doc """
+  Returns base62 encoded encrypted token with given payload, raises an exception on error.
+
+      iex> token = Branca.encode("Hello world!")
+      "875GH233T7IYrxtgXxlQBYiFobZMQdHAT51vChKsAIYCFxZtL1evV54vYqLyZtQ0ekPHt8kJHQp0a"
+  """
   def encode!(payload, options \\ []) do
     case encode(payload, options) do
       {:ok, token} -> token
@@ -72,14 +78,13 @@ defmodule Branca do
   end
 
   @doc """
-  Decrypts and verifies the token and returns the original payload on success.
+  Decrypts and verifies the token returning the payload on success.
 
       iex> token = Branca.encode("Hello world!");
       iex> Branca.decode(token)
       {:ok, "Hello world!"}
 
-  Optionally you can make sure tokens are valid only `ttl` seconds after
-  they have been generated or timestamped.
+  Optionally you can make sure tokens are valid only `ttl` seconds.
 
       iex> token = Branca.encode("Hello world!", timestamp: 123206400);
       iex> Branca.decode(token)
@@ -114,6 +119,13 @@ defmodule Branca do
     end
   end
 
+  @doc """
+  Decrypts and verifies the token returning the payload on success, raises an exception on error.
+
+      iex> token = Branca.encode("Hello world!");
+      iex> Branca.decode!(token)
+      "Hello world!"
+  """
   def decode!(token, options \\ []) do
     case decode(token, options) do
       {:ok, payload} -> payload
@@ -121,10 +133,10 @@ defmodule Branca do
     end
   end
 
-  def format_error(:expired), do: "Token is expired."
-  def format_error(:forged), do: "Invalid token."
-  def format_error(:unknown_version), do: "Unknown token version."
-  def format_error(:invalid_argument), do: "Invalid arguments passed to Libsodium."
+  defp format_error(:expired), do: "Token is expired."
+  defp format_error(:forged), do: "Invalid token."
+  defp format_error(:unknown_version), do: "Unknown token version."
+  defp format_error(:invalid_argument), do: "Invalid arguments passed to Libsodium."
 
   defp add_timestamp(token, %{timestamp: timestamp}) when is_integer(timestamp) do
     timestamp = :binary.encode_unsigned(timestamp, :big)
