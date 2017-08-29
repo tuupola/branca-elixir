@@ -9,6 +9,9 @@ defmodule Branca do
   Payload in Branca token is an arbitrary sequence of bytes. This means
   payload can be for example a JSON object, plain text string or even binary
   data serialized by [MessagePack](http://msgpack.org/) or [Protocol Buffers](https://developers.google.com/protocol-buffers/).
+
+  This library expects you the set the secret key in `config/config.exs`:
+      config :branca, key: "supersecretkeyyoushouldnotcommit"
   """
   alias Salty.Aead.Xchacha20poly1305Ietf, as: Xchacha20
   alias Branca.Token, as: Token
