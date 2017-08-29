@@ -15,7 +15,7 @@ by adding `branca` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:branca, "~> 0.0.1"}
+    {:branca, "~> 0.2.0"}
   ]
 end
 ```
