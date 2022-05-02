@@ -2,6 +2,7 @@
 
 [![Latest Version](	https://img.shields.io/hexpm/v/branca.svg?style=flat-square)](https://hex.pm/packages/branca)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
+[![Build Status](https://img.shields.io/github/workflow/status/tuupola/branca-elixir/Tests/master?style=flat-square)](https://github.com/tuupola/branca-elixir/actions)
 [![Coverage](https://img.shields.io/codecov/c/github/tuupola/branca-elixir.svg?style=flat-square)](https://codecov.io/github/tuupola/branca-elixir)
 
 **TODO: Add description**
