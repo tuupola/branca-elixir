@@ -22,7 +22,7 @@ defmodule Branca.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:salty, "~> 0.1.1", hex: :libsalty},
+      {:libsalty2, "~> 0.3.0"},
       {:basex, "~> 1.0"},
       {:ex_doc, "~> 0.16.2", only: :dev}
     ]
