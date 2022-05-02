@@ -24,7 +24,7 @@ defmodule Branca.Mixfile do
     [
       {:libsalty2, "~> 0.3.0"},
       {:basex, "~> 1.0"},
-      {:ex_doc, "~> 0.16.2", only: :dev}
+      {:ex_doc, "~> 0.28.4", only: :dev}
     ]
   end
 
