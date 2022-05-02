@@ -29,7 +29,7 @@ jobs:
         key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
         restore-keys: ${{ runner.os }}-mix-
     - name: install libsodium
-      run: sudo apt install -y libsodium libsodium-dev
+      run: sudo apt-get update && sudo apt install -y libsodium-dev
     - name: Install dependencies
       run: mix deps.get
     - name: Run tests
