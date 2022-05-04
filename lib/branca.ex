@@ -55,11 +55,11 @@ defmodule Branca do
   def encode(payload, options) do
     try do
       %Token{payload: payload}
-        |> add_timestamp(options)
-        |> add_nonce(options)
-        |> add_header
-        |> seal
-        |> base62_encode
+      |> add_timestamp(options)
+      |> add_nonce(options)
+      |> add_header
+      |> seal
+      |> base62_encode
     rescue
       _ in ArgumentError -> {:error, :invalid_argument}
     else
@@ -160,6 +160,7 @@ defmodule Branca do
       byte_size(nonce) == Xchacha20.npubbytes() -> %Token{token | nonce: nonce}
       true -> {:error, :invalid_nonce}
     end
+
     %Token{token | nonce: nonce}
   end
 
@@ -183,27 +184,27 @@ defmodule Branca do
   end
 
   defp explode_binary(%Token{binary: binary} = token) do
-    << header::binary - size(29), data::binary >> = binary
+    <<header::binary-size(29), data::binary>> = binary
     %Token{token | header: header, data: data}
   end
 
   defp explode_header(%Token{header: header} = token) do
-    << version::8, timestamp::32, nonce::binary - size(24) >> = header
+    <<version::8, timestamp::32, nonce::binary-size(24)>> = header
     %Token{token | version: version, timestamp: timestamp, nonce: nonce}
   end
 
   defp explode_data(%Token{data: data} = token) do
     size = byte_size(data) - 16
-    << ciphertext::binary - size(size), tag::binary - size(16) >> = data
+    <<ciphertext::binary-size(size), tag::binary-size(16)>> = data
     %Token{token | ciphertext: ciphertext, tag: tag}
   end
 
   defp explode_token(encoded) do
     encoded
-      |> base62_decode
-      |> explode_binary
-      |> explode_header
-      |> explode_data
+    |> base62_decode
+    |> explode_binary
+    |> explode_header
+    |> explode_data
   end
 
   defp unixtime do
