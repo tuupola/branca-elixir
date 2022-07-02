@@ -21,7 +21,6 @@ defmodule Branca do
   @version 0xBA
   @alphabet "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
   @base62 BaseX.prepare_module("Base62", @alphabet, 127)
-  @key Application.get_env(:branca, :key)
 
   @doc """
   Returns base62 encoded encrypted token with given payload.
@@ -212,11 +211,11 @@ defmodule Branca do
   end
 
   defp seal(token) do
-    {_, ciphertext} = Xchacha20.encrypt(token.payload, token.header, nil, token.nonce, @key)
+    {_, ciphertext} = Xchacha20.encrypt(token.payload, token.header, nil, token.nonce, Application.get_env(:branca, :key))
     %Token{token | ciphertext: ciphertext}
   end
 
   defp unseal(token) do
-    Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, @key)
+    Xchacha20.decrypt_detached(nil, token.ciphertext, token.tag, token.header, token.nonce, Application.get_env(:branca, :key))
   end
 end
